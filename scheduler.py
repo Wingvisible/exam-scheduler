@@ -4,7 +4,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 exams = pd.read_excel("exams.xlsx", sheet_name = 0, usecols = "A:C", header=None).fillna(0)
-exams = exams.values[0:10]
+exams = exams.values[:10]
 print(exams)
 
 def get_node_edges(exams: np.array):
@@ -31,18 +31,18 @@ def get_node_edges(exams: np.array):
 
 exams_dictionary, exam_edges = get_node_edges(exams)
 
-#print(exams_dictionary)        
+print(exams_dictionary)        
 print(exam_edges)
 
 G = nx.Graph()
 G.add_edges_from(exam_edges)
 options = {
-    "font_size": 20,
-    "node_size": 1000,
+    "font_size": 10,
+    "node_size": 500,
     "node_color": "white",
     "edgecolors": "black",
     "linewidths": 1,
-    "width": 5,
+    "width": 2,
 }
 nx.draw_networkx(G, **options)
 ax = plt.gca()
