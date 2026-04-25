@@ -51,10 +51,18 @@ def strategy_largest_first(G, colors):
 
 def greedy_color(G, strategy):
     colors = {}
-    nodes = strategy(G, colors)
+    nodes = G #strategy(G, colors)
     for u in nodes:
         # Set to keep track of colors of neighbors
         nbr_colors = {colors[v] for v in G[u] if v in colors}
+        # Add slots that are in the same day. Day 1 has slot 0, 1 (only 1 morning and 1 afternoon slot every day)
+        same_day_colors = []
+        for colour in nbr_colors:
+            if colour % 2 == 0:
+                same_day_colors.append(colour+1)
+            elif colour % 2 != 0:
+                same_day_colors.append(colour-1)
+        nbr_colors.update(same_day_colors)
         # Find the first unused color.
         for color in itertools.count():
             if color not in nbr_colors:
@@ -68,6 +76,7 @@ coloring = greedy_color(G, strategy=strategy_largest_first)
 
 #2. from https://networkx.org/documentation/stable/auto_examples/algorithms/plot_greedy_coloring.html
 unique_colors = set(coloring.values())
+print(f"number of colors: {len(unique_colors)}, color map = {coloring}")
 # Assign colors to nodes based on the greedy coloring
 graph_color_to_mpl_color = dict(zip(unique_colors, mpl.TABLEAU_COLORS))
 node_colors = [graph_color_to_mpl_color[coloring[n]] for n in G.nodes()]
@@ -81,6 +90,7 @@ options = {
     "linewidths": 1,
     "width": 2,
 }
+
 nx.draw_networkx(G, **options)
 plt.axis("off")
 plt.show()
