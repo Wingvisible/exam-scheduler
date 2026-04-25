@@ -4,6 +4,7 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.colors as mpl
+from networkx.utils import py_random_state
 
 exams = pd.read_excel("exams.xlsx", sheet_name = 0, usecols = "A:C", header=None).fillna(0)
 exams = exams.values
@@ -40,7 +41,21 @@ G = nx.Graph()
 G.add_edges_from(exam_edges)
 
 #1. from networkx documentation https://networkx.org/documentation/stable/_modules/networkx/algorithms/coloring/greedy_coloring.html#greedy_color
-def strategy_largest_first(G, colors):
+@py_random_state(2)
+def strategy_random_sequential(G, colors, seed=None):
+    """Returns a random permutation of the nodes of ``G`` as a list.
+
+    ``G`` is a NetworkX graph. ``colors`` is ignored.
+
+    seed : integer, random_state, or None (default)
+        Indicator of random number generation state.
+        See :ref:`Randomness<randomness>`.
+    """
+    nodes = list(G)
+    seed.shuffle(nodes)
+    return nodes
+
+def strategy_largest_first(G, colors, seed):
     """Returns a list of the nodes of ``G`` in decreasing order by
     degree.
 
@@ -49,9 +64,9 @@ def strategy_largest_first(G, colors):
     """
     return sorted(G, key=G.degree, reverse=True)
 
-def greedy_color(G, strategy):
+def greedy_color(G, strategy, seed):
     colors = {}
-    nodes = strategy(G, colors)
+    nodes = strategy(G, colors, seed)
     existing_colors = set()
     for u in nodes:
         # Set to keep track of colors of neighbors
@@ -80,14 +95,25 @@ def greedy_color(G, strategy):
     return colors
 
 
-coloring = greedy_color(G, strategy=strategy_largest_first)
+# Run different node sequence orders
+coloring = greedy_color(G, strategy=strategy_largest_first, seed=None)
+best_coloring = coloring
+print(set(coloring.values()))
+least_slots = max(set(coloring.values()))
+for seed in range(100):
+    coloring = greedy_color(G, strategy=strategy_random_sequential, seed=seed)
+    required_slots = max(set(coloring.values()))
+    if required_slots < least_slots:
+        best_coloring = coloring
+        least_slots = required_slots
+
 
 #2. from https://networkx.org/documentation/stable/auto_examples/algorithms/plot_greedy_coloring.html
-unique_colors = set(coloring.values())
-print(f"number of colors: {len(unique_colors)}, color map = {coloring}")
+unique_colors = set(best_coloring.values())
+print(f"number of colors: {least_slots}, color map = {best_coloring}")
 # Assign colors to nodes based on the greedy coloring
 graph_color_to_mpl_color = dict(zip(unique_colors, mpl.CSS4_COLORS))
-node_colors = [graph_color_to_mpl_color[coloring[n]] for n in G.nodes()]
+node_colors = [graph_color_to_mpl_color[best_coloring[n]] for n in G.nodes()]
 
 #3. from https://networkx.org/documentation/stable/auto_examples/basic/plot_simple_graph.html
 options = {
