@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mpl
 
 exams = pd.read_excel("exams.xlsx", sheet_name = 0, usecols = "A:C", header=None).fillna(0)
-exams = exams.values[:10]
+exams = exams.values
 print(exams)
 
 def get_node_edges(exams: np.array):
@@ -51,7 +51,8 @@ def strategy_largest_first(G, colors):
 
 def greedy_color(G, strategy):
     colors = {}
-    nodes = G #strategy(G, colors)
+    nodes = strategy(G, colors)
+    existing_colors = set()
     for u in nodes:
         # Set to keep track of colors of neighbors
         nbr_colors = {colors[v] for v in G[u] if v in colors}
@@ -64,11 +65,18 @@ def greedy_color(G, strategy):
                 same_day_colors.append(colour-1)
         nbr_colors.update(same_day_colors)
         # Find the first unused color.
-        for color in itertools.count():
-            if color not in nbr_colors:
+        Color = None
+        for color in range(17):
+            if color not in nbr_colors and color not in existing_colors:
+                Color = color
                 break
+        if Color is None: 
+            for color in itertools.count():
+                if color not in nbr_colors:
+                    break
         # Assign the new color to the current node.
         colors[u] = color
+        existing_colors.update({color})
     return colors
 
 
@@ -78,7 +86,7 @@ coloring = greedy_color(G, strategy=strategy_largest_first)
 unique_colors = set(coloring.values())
 print(f"number of colors: {len(unique_colors)}, color map = {coloring}")
 # Assign colors to nodes based on the greedy coloring
-graph_color_to_mpl_color = dict(zip(unique_colors, mpl.TABLEAU_COLORS))
+graph_color_to_mpl_color = dict(zip(unique_colors, mpl.CSS4_COLORS))
 node_colors = [graph_color_to_mpl_color[coloring[n]] for n in G.nodes()]
 
 #3. from https://networkx.org/documentation/stable/auto_examples/basic/plot_simple_graph.html
