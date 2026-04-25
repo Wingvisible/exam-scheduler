@@ -13,7 +13,7 @@ print(exams)
 def get_node_edges(exams: np.array):
     exams_dictionary = {}
     exam_edges = []
-
+    exam_student_count = {}
     exam_count = 0
     for student in exams:
         student = list(student)
@@ -25,17 +25,20 @@ def get_node_edges(exams: np.array):
             if exam not in exams_dictionary:
                 exams_dictionary[exam] = exam_count
                 exam_count += 1
+                exam_student_count[exam] = 0
+            exam_student_count[exam] += 1
         for i in range(len(student)):
             for j in student[i+1:]:
                 edge = [exams_dictionary[student[i]], exams_dictionary[j]]
                 if tuple(edge) not in exam_edges and tuple(edge[::-1]) not in exam_edges:
                     exam_edges.append(tuple(edge))
-    return exams_dictionary, exam_edges
+    return exams_dictionary, exam_edges, exam_student_count
 
-exams_dictionary, exam_edges = get_node_edges(exams)
+exams_dictionary, exam_edges, exam_student_count = get_node_edges(exams)
 
 print(exams_dictionary)        
 print(exam_edges)
+print(f"exam count = {exam_student_count}")
 
 G = nx.Graph()
 G.add_edges_from(exam_edges)
@@ -96,6 +99,7 @@ def greedy_color(G, strategy, seed):
 
 
 # Run different node sequence orders
+print(G.degree)
 coloring = greedy_color(G, strategy=strategy_largest_first, seed=None)
 best_coloring = coloring
 print(set(coloring.values()))
@@ -124,6 +128,18 @@ options = {
     "linewidths": 1,
     "width": 2,
 }
+
+daily_student_count = []
+for i in range(least_slots+1):
+    if i % 2 == 0:
+        count = 0
+        for exam,color in best_coloring.items():
+            if color == i or color == i+1:
+                for k,v in exams_dictionary.items():
+                    if v == exam:
+                        count += exam_student_count[k]
+        daily_student_count.append(count)
+print(daily_student_count)    
 
 nx.draw_networkx(G, **options)
 plt.axis("off")
