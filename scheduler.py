@@ -24,9 +24,9 @@ def get_node_edges(exams: np.array):
         for exam in student:
             if exam not in exams_dictionary:
                 exams_dictionary[exam] = exam_count
+                exam_student_count[exam_count] = 0
                 exam_count += 1
-                exam_student_count[exam] = 0
-            exam_student_count[exam] += 1
+            exam_student_count[exams_dictionary[exam]] += 1
         for i in range(len(student)):
             for j in student[i+1:]:
                 edge = [exams_dictionary[student[i]], exams_dictionary[j]]
@@ -71,30 +71,58 @@ def greedy_color(G, strategy, seed):
     colors = {}
     nodes = strategy(G, colors, seed)
     existing_colors = set()
+    two_exams_same_day_count = 0
+    colors = {}
     for u in nodes:
         # Set to keep track of colors of neighbors
         nbr_colors = {colors[v] for v in G[u] if v in colors}
+
+        # # requirement 9 days but students can have 2 exams same day
+        # # Find the first unused color.
+        # for color in itertools.count():
+        #     if color not in nbr_colors:
+        #         break
+        # #Assign the new color to the current node.
+        # colors[u] = color
+
+
+        # requirement no students have 2 exams the same day
         # Add slots that are in the same day. Day 1 has slot 0, 1 (only 1 morning and 1 afternoon slot every day)
         same_day_colors = []
         for colour in nbr_colors:
-            if colour % 2 == 0:
+            if colour % 2 == 0 and color + 1 not in nbr_colors:
                 same_day_colors.append(colour+1)
-            elif colour % 2 != 0:
+            elif colour % 2 != 0 and color - 1 not in nbr_colors:
                 same_day_colors.append(colour-1)
+        #print(nbr_colors)
+        #print(f"same day colors: {same_day_colors}")
         nbr_colors.update(same_day_colors)
-        # Find the first unused color.
+        #print(nbr_colors)
+        #Find the first unused color.
         Color = None
-        for color in range(17):
+        for color in range(18):
             if color not in nbr_colors and color not in existing_colors:
                 Color = color
                 break
         if Color is None: 
-            for color in itertools.count():
+            for color in range(18):
                 if color not in nbr_colors:
+                    Color = color
                     break
-        # Assign the new color to the current node.
+            if Color is None:
+                #print(f"basic: {nbr_colors}")
+                nbr_colors.difference(same_day_colors)
+                #print(f"basic: {nbr_colors}")
+                for color in itertools.count():
+                    if color not in nbr_colors:
+                        print(u)
+                        print(f"exam {exam_student_count[u]}")
+                        two_exams_same_day_count += exam_student_count[u]
+                        break
+        #Assign the new color to the current node.
         colors[u] = color
         existing_colors.update({color})
+    print(f"two exam on same day count = {two_exams_same_day_count}")
     return colors
 
 
@@ -104,12 +132,12 @@ coloring = greedy_color(G, strategy=strategy_largest_first, seed=None)
 best_coloring = coloring
 print(set(coloring.values()))
 least_slots = max(set(coloring.values()))
-for seed in range(100):
-    coloring = greedy_color(G, strategy=strategy_random_sequential, seed=seed)
-    required_slots = max(set(coloring.values()))
-    if required_slots < least_slots:
-        best_coloring = coloring
-        least_slots = required_slots
+# for seed in range(100):
+#     coloring = greedy_color(G, strategy=strategy_random_sequential, seed=seed)
+#     required_slots = max(set(coloring.values()))
+#     if required_slots < least_slots:
+#         best_coloring = coloring
+#         least_slots = required_slots
 
 
 #2. from https://networkx.org/documentation/stable/auto_examples/algorithms/plot_greedy_coloring.html
@@ -133,11 +161,9 @@ daily_student_count = []
 for i in range(least_slots+1):
     if i % 2 == 0:
         count = 0
-        for exam,color in best_coloring.items():
-            if color == i or color == i+1:
-                for k,v in exams_dictionary.items():
-                    if v == exam:
-                        count += exam_student_count[k]
+        for exam, slot in best_coloring.items():
+            if slot == i or slot == i+1:
+                count += exam_student_count[exam]
         daily_student_count.append(count)
 print(daily_student_count)    
 
