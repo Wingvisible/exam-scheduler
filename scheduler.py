@@ -6,9 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mpl
 from networkx.utils import py_random_state
 
-exams = pd.read_excel("exams.xlsx", sheet_name = 0, usecols = "A:C", header=None).fillna(0)
-exams = exams.values
-print(exams)
+
 
 def get_node_edges(exams: np.array):
     exams_dictionary = {}
@@ -33,15 +31,6 @@ def get_node_edges(exams: np.array):
                 if tuple(edge) not in exam_edges and tuple(edge[::-1]) not in exam_edges:
                     exam_edges.append(tuple(edge))
     return exams_dictionary, exam_edges, exam_student_count
-
-exams_dictionary, exam_edges, exam_student_count = get_node_edges(exams)
-
-print(exams_dictionary)        
-print(exam_edges)
-print(f"exam count = {exam_student_count}")
-
-G = nx.Graph()
-G.add_edges_from(exam_edges)
 
 #1. from networkx documentation https://networkx.org/documentation/stable/_modules/networkx/algorithms/coloring/greedy_coloring.html#greedy_color
 @py_random_state(2)
@@ -123,26 +112,57 @@ def greedy_color(G, strategy, seed):
         colors[u] = color
         existing_colors.update({color})
     print(f"two exam on same day count = {two_exams_same_day_count}")
-    return colors
+    return colors, two_exams_same_day_count
+
+def daily_student_count(slots_number, coloring):
+    daily_student_count = []
+    for i in range(slots_number):
+        if i % 2 == 0:
+            count = 0
+            for exam, slot in coloring.items():
+                if slot == i or slot == i+1:
+                    count += exam_student_count[exam]
+            daily_student_count.append(count)
+    return daily_student_count    
+
+exams = pd.read_excel("exams.xlsx", sheet_name = 0, usecols = "A:C", header=None).fillna(0)
+exams = exams.values
+print(exams)
+
+exams_dictionary, exam_edges, exam_student_count = get_node_edges(exams)
+
+print(exams_dictionary)        
+print(exam_edges)
+print(f"exam count = {exam_student_count}")
+
+G = nx.Graph()
+G.add_edges_from(exam_edges)
 
 
 # Run different node sequence orders
 print(G.degree)
-coloring = greedy_color(G, strategy=strategy_largest_first, seed=None)
+coloring, two_exam_same_day_count = greedy_color(G, strategy=strategy_largest_first, seed=None)
 best_coloring = coloring
 print(set(coloring.values()))
-least_slots = max(set(coloring.values()))
-# for seed in range(100):
-#     coloring = greedy_color(G, strategy=strategy_random_sequential, seed=seed)
-#     required_slots = max(set(coloring.values()))
-#     if required_slots < least_slots:
-#         best_coloring = coloring
-#         least_slots = required_slots
+least_slots = max(set(coloring.values()))+1
+max_daily_student_count = max(daily_student_count(least_slots, coloring))
+max_two_exam_same_day_count = two_exam_same_day_count
+for seed in range(100):
+    coloring, two_exam_same_day_count = greedy_color(G, strategy=strategy_random_sequential, seed=seed)
+    required_slots = max(set(coloring.values())) + 1
+    if required_slots <= least_slots:
+        max_student_count = max(daily_student_count(required_slots, coloring))
+        print("hi", max_student_count)
+        if max_student_count <= max_daily_student_count and two_exam_same_day_count <= max_two_exam_same_day_count:
+            best_coloring = coloring
+            least_slots = required_slots
+            max_daily_student_count = max_student_count
 
 
 #2. from https://networkx.org/documentation/stable/auto_examples/algorithms/plot_greedy_coloring.html
 unique_colors = set(best_coloring.values())
-print(f"number of colors: {least_slots}, color map = {best_coloring}")
+print(f"number of colors: {least_slots}, color map = {best_coloring}, max students in a day = {max_daily_student_count}, students taking two exams same day = {max_two_exam_same_day_count}")
+print(f"daily student count: {daily_student_count(least_slots, best_coloring)}" )
 # Assign colors to nodes based on the greedy coloring
 graph_color_to_mpl_color = dict(zip(unique_colors, mpl.CSS4_COLORS))
 node_colors = [graph_color_to_mpl_color[best_coloring[n]] for n in G.nodes()]
@@ -157,15 +177,8 @@ options = {
     "width": 2,
 }
 
-daily_student_count = []
-for i in range(least_slots+1):
-    if i % 2 == 0:
-        count = 0
-        for exam, slot in best_coloring.items():
-            if slot == i or slot == i+1:
-                count += exam_student_count[exam]
-        daily_student_count.append(count)
-print(daily_student_count)    
+celine_coloring = {0:2, 14:2, 5:0, 17:0, 10:1, 20:4, 11:4, 6:6, 16:7, 19:7, 21:8, 3:8, 7:8, 1:10, 13:12, 9:12, 18:12, 12:14, 4:15, 15:15, 2:16, 22:16, 8:16 }
+daily_celine_exams = [(5,17,10), (14,0), (20,11), (6,16,19), (21,3,7), (1), (13,9,18), (12,4,15), (2,22,8)]
 
 nx.draw_networkx(G, **options)
 plt.axis("off")
