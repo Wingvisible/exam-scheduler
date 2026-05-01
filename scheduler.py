@@ -83,34 +83,36 @@ def greedy_color(G, strategy, seed):
                 same_day_colors.append(colour+1)
             elif colour % 2 != 0 and color - 1 not in nbr_colors:
                 same_day_colors.append(colour-1)
-        #print(nbr_colors)
-        #print(f"same day colors: {same_day_colors}")
+        print(nbr_colors)
+        print(f"same day colors: {same_day_colors}")
         nbr_colors.update(same_day_colors)
         #print(nbr_colors)
         #Find the first unused color.
         Color = None
-        for color in range(18):
+        for color in range(0,18,2):
             if color not in nbr_colors and color not in existing_colors:
                 Color = color
                 break
         if Color is None: 
-            for color in range(18):
+            for color in range(0,18,2):
                 if color not in nbr_colors:
                     Color = color
                     break
             if Color is None:
-                #print(f"basic: {nbr_colors}")
-                nbr_colors.difference(same_day_colors)
-                #print(f"basic: {nbr_colors}")
+                print(f"basic: {nbr_colors}")
+                nbr_colors.difference_update(same_day_colors)
+                print(f"basic: {nbr_colors}")
                 for color in itertools.count():
                     if color not in nbr_colors:
-                        print(u)
+                        print("------attention-------")
                         print(f"exam {exam_student_count[u]}")
                         two_exams_same_day_count += exam_student_count[u]
+                        Color = color
                         break
         #Assign the new color to the current node.
-        colors[u] = color
-        existing_colors.update({color})
+        print(Color)
+        colors[u] = Color
+        existing_colors.update({Color})
     print(f"two exam on same day count = {two_exams_same_day_count}")
     return colors, two_exams_same_day_count
 
@@ -168,7 +170,11 @@ max_two_exam_same_day_count = two_exam_same_day_count
 for seed in range(100):
     coloring, two_exam_same_day_count = greedy_color(G, strategy=strategy_random_sequential, seed=seed)
     required_slots = max(set(coloring.values())) + 1
-    if required_slots <= least_slots:
+    if required_slots < least_slots and least_slots > 18:
+        best_coloring = coloring
+        least_slots = required_slots
+        max_daily_student_count = max(daily_student_count(required_slots, coloring))
+    elif required_slots <= least_slots or required_slots < 18:
         max_student_count = max(daily_student_count(required_slots, coloring))
         print("hi", max_student_count)
         if max_student_count <= max_daily_student_count and two_exam_same_day_count <= max_two_exam_same_day_count:
