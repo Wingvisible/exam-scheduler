@@ -125,19 +125,24 @@ def daily_student_count(slots_number, coloring):
             daily_student_count.append(count)
     return daily_student_count    
 
-def celine_schedule_analysis(coloring, exams, daily_exam):
+def celine_schedule_analysis(coloring, exams, daily_exams):
     conflict_count = 0
+    two_exam_same_day_count = 0 
     for student in exams:
         #remove 0 at the end of the list
         student = list(student)
         for value in student:
             if value == 0:
                 student.remove(value)
-        conflict_found = False
-        student_exam_numbers = [coloring[exams_dictionary[exam]] for exam in student]
-        if len(set(student_exam_numbers)) < len(student_exam_numbers):
+        student_exam_numbers = [exams_dictionary[exam] for exam in student]
+        color_numbers = [coloring[exam_number] for exam_number in student_exam_numbers]
+        if len(set(color_numbers)) < len(color_numbers):
             conflict_count += 1
+        for day in daily_exams:
+            if len(set(student_exam_numbers).intersection(set(day))) >= 2:
+                two_exam_same_day_count += 1
     print(conflict_count)
+    print(two_exam_same_day_count)
 exams = pd.read_excel("exams.xlsx", sheet_name = 0, usecols = "A:C", header=None).fillna(0)
 exams = exams.values
 print(exams)
@@ -191,10 +196,10 @@ options = {
 }
 
 celine_coloring = {0:2, 14:2, 5:0, 17:0, 10:1, 20:4, 11:4, 6:6, 16:7, 19:7, 21:8, 3:8, 7:8, 1:10, 13:12, 9:12, 18:12, 12:14, 4:15, 15:15, 2:16, 22:16, 8:16 }
-daily_celine_exams = [(5,17,10), (14,0), (20,11), (6,16,19), (21,3,7), (1), (13,9,18), (12,4,15), (2,22,8)]
+daily_celine_exams = [(5,17,10), (14,0), (20,11), (6,16,19), (21,3,7), [1], (13,9,18), (12,4,15), (2,22,8)]
 celine_coloring_only_morning = {5:0, 17:0, 10:0, 14:1, 0:1, 20:2, 11:2, 6:3, 16:3, 19:3, 21:4, 3:4, 7:4, 1:5, 13:6, 9:6, 18:6, 12:7, 4:7, 15:7, 2:8, 22:8, 8:8}
-celine_schedule_analysis(celine_coloring_only_morning, exams, daily_celine_exams)
-
+celine_schedule_analysis(celine_coloring, exams, daily_celine_exams)
+print(daily_student_count(max(celine_coloring.values())+1, celine_coloring))
 nx.draw_networkx(G, **options)
 plt.axis("off")
 plt.show()
